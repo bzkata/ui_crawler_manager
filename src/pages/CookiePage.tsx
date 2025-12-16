@@ -54,7 +54,7 @@ const CookiePage: React.FC = () => {
   const handleDelete = async (id: string) => {
     try {
       await client.delete(`/cookies/${id}`);
-      message.success('Deleted successfully');
+      message.success('删除成功');
       fetchCookies();
     } catch (error) {
       // handled elsewhere
@@ -66,10 +66,10 @@ const CookiePage: React.FC = () => {
       const values = await form.validateFields();
       if (editingCookie) {
         await client.put(`/cookies/${editingCookie.id}`, values);
-        message.success('Updated successfully');
+        message.success('更新成功');
       } else {
         await client.post('/cookies', values);
-        message.success('Created successfully');
+        message.success('创建成功');
       }
       setModalOpen(false);
       fetchCookies();
@@ -82,19 +82,19 @@ const CookiePage: React.FC = () => {
     setRotateLoading(true);
     try {
       // Just test with a platform, hardcoded for now or prompt user.
-      const res = await client.get<any, ApiResponse<Cookie>>('/cookies/rotate?platform=xhs');
+      const res = await client.get<any, ApiResponse<Cookie>>('/cookies/random?platform=xhs');
       if (res.data) {
         Modal.info({
-          title: 'Rotated Cookie Result',
+          title: '轮换结果',
           content: (
             <div>
-              <p><b>Platform:</b> {res.data.platform}</p>
-              <p><b>Cookie:</b> <Text code>{res.data.value ? res.data.value.substring(0, 20) + '...' : 'N/A'}</Text></p>
+              <p><b>平台:</b> {res.data.platform}</p>
+              <p><b>Cookie:</b> <Text code>{res.data.cookie_value ? res.data.cookie_value.substring(0, 20) + '...' : '无'}</Text></p>
             </div>
           )
         });
       } else {
-        message.warning('No cookie available');
+        message.warning('无可用 Cookie');
       }
     } catch (e) {
       // error
@@ -105,22 +105,25 @@ const CookiePage: React.FC = () => {
 
   const columns: ColumnsType<Cookie> = [
     {
-      title: 'Platform',
+      title: '平台',
       dataIndex: 'platform',
       key: 'platform',
       width: 120,
       render: (text) => {
-        let color = 'default';
-        if (text === 'xhs') color = 'red';
-        if (text === 'douyin') color = 'blue';
-        if (text === 'zhihu') color = 'geekblue';
-        return <Tag color={color}>{text.toUpperCase()}</Tag>;
+        const map: Record<string, string> = {
+          xhs: '小红书', dy: '抖音', ks: '快手', bili: '哔哩哔哩',
+          wb: '微博', tieba: '百度贴吧', zhuihu: '知乎'
+        };
+        const colorMap: Record<string, string> = {
+          xhs: 'red', dy: 'blue', zhihu: 'geekblue'
+        };
+        return <Tag color={colorMap[text] || 'default'}>{map[text] || text.toUpperCase()}</Tag>;
       }
     },
     {
-      title: 'Cookie Value',
-      dataIndex: 'value',
-      key: 'value',
+      title: 'Cookie 值',
+      dataIndex: 'cookie_value',
+      key: 'cookie_value',
       ellipsis: true,
       render: (val) => (
         <span style={{ fontFamily: 'monospace' }}>
@@ -130,24 +133,30 @@ const CookiePage: React.FC = () => {
       )
     },
     {
-      title: 'Expiry',
+      title: '启用状态',
+      dataIndex: 'enabled',
+      key: 'enabled',
+      render: (e) => <Tag color={e ? 'green' : 'red'}>{e ? '启用' : '禁用'}</Tag>
+    },
+    {
+      title: '过期时间',
       dataIndex: 'expiry',
       key: 'expiry',
       render: (d) => d ? dayjs(d).format('YYYY-MM-DD HH:mm') : '-',
     },
     {
-      title: 'Note',
-      dataIndex: 'note',
-      key: 'note',
+      title: '备注',
+      dataIndex: 'remark',
+      key: 'remark',
     },
     {
-      title: 'Actions',
+      title: '操作',
       key: 'actions',
       width: 150,
       render: (_, record) => (
         <Space>
           <Button icon={<EditOutlined />} size="small" onClick={() => handleEdit(record)} />
-          <Popconfirm title="Delete cookie?" onConfirm={() => handleDelete(record.id)}>
+          <Popconfirm title="确定删除吗?" onConfirm={() => handleDelete(record.id)}>
             <Button icon={<DeleteOutlined />} size="small" danger />
           </Popconfirm>
         </Space>
@@ -158,12 +167,12 @@ const CookiePage: React.FC = () => {
   return (
     <div>
       <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between' }}>
-        <h2>Cookie Management</h2>
+        <h2>Cookie 管理</h2>
         <Space>
-          <Button icon={<ReloadOutlined />} onClick={fetchCookies}>Refresh</Button>
-          <Button icon={<SecurityScanOutlined />} loading={rotateLoading} onClick={handleRotateTest}>Test Rotation (XHS)</Button>
+          <Button icon={<ReloadOutlined />} onClick={fetchCookies}>刷新</Button>
+          <Button icon={<SecurityScanOutlined />} loading={rotateLoading} onClick={handleRotateTest}>测试轮换 (小红书)</Button>
           <Button type="primary" icon={<PlusOutlined />} onClick={handleAdd}>
-            Add Cookie
+            添加 Cookie
           </Button>
         </Space>
       </div>
@@ -177,7 +186,7 @@ const CookiePage: React.FC = () => {
       />
 
       <Modal
-        title={editingCookie ? 'Edit Cookie' : 'Add Cookie'}
+        title={editingCookie ? '编辑 Cookie' : '添加 Cookie'}
         open={modalOpen}
         onOk={handleOk}
         onCancel={() => setModalOpen(false)}
@@ -187,25 +196,29 @@ const CookiePage: React.FC = () => {
         <Form form={form} layout="vertical">
           <Form.Item
             name="platform"
-            label="Platform"
+            label="平台"
             rules={[{ required: true }]}
           >
-            <Select>
-              <Select.Option value="xhs">Xiaohongshu</Select.Option>
-              <Select.Option value="douyin">Douyin</Select.Option>
-              <Select.Option value="zhihu">Zhihu</Select.Option>
-            </Select>
+            <Select options={[
+              { label: '小红书', value: 'xhs' },
+              { label: '抖音', value: 'dy' },
+              { label: '快手', value: 'ks' },
+              { label: '哔哩哔哩', value: 'bili' },
+              { label: '微博', value: 'wb' },
+              { label: '百度贴吧', value: 'tieba' },
+              { label: '知乎', value: 'zhihu' },
+            ]} />
           </Form.Item>
           <Form.Item
-            name="value"
-            label="Cookie Value"
-            rules={[{ required: true, message: 'Please enter cookie' }]}
+            name="cookie_value"
+            label="Cookie 值"
+            rules={[{ required: true, message: '请输入 Cookie' }]}
           >
-            <Input.TextArea rows={4} placeholder="Paste raw cookie string here" />
+            <Input.TextArea rows={4} placeholder="在此粘贴原始 Cookie 字符串" />
           </Form.Item>
           {/* Optional fields: expiry, note */}
-          <Form.Item name="note" label="Note">
-            <Input placeholder="Optional remarks" />
+          <Form.Item name="remark" label="备注">
+            <Input placeholder="选填备注" />
           </Form.Item>
         </Form>
       </Modal>

@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { Card, Select, Button, Table, Tag, Progress, Row, Col, message, Typography } from 'antd';
-import { PlayCircleOutlined, DownloadOutlined, ReloadOutlined, HistoryOutlined } from '@ant-design/icons';
+import { PlayCircleOutlined, ReloadOutlined, HistoryOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import client from '../api/client';
 import type { Config, TaskHistory, ApiResponse } from '../types';
@@ -37,7 +37,7 @@ const TriggerPage: React.FC = () => {
   const fetchHistory = async () => {
     setHistoryLoading(true);
     try {
-      const res = await client.get<any, ApiResponse<TaskHistory[]>>('/tasks/history');
+      const res = await client.get<any, ApiResponse<TaskHistory[]>>('/tasks');
       if (res.code === 0 || Array.isArray(res)) {
         setHistory(Array.isArray(res) ? res : res.data);
       }
@@ -50,19 +50,19 @@ const TriggerPage: React.FC = () => {
 
   const handleTrigger = async () => {
     if (!selectedConfigId) {
-      message.error('Please select a configuration');
+      message.error('请选择配置');
       return;
     }
     setTriggering(true);
     try {
-      const res = await client.post<any, ApiResponse<{ taskId: string }>>('/trigger', { configId: selectedConfigId });
+      const res = await client.post<any, ApiResponse<{ taskId: string }>>('/tasks/trigger', { configId: selectedConfigId });
       const taskId = res.data?.taskId || (res as any).taskId; // Handle flexible mock response
       if (taskId) {
-        message.success('Task started! ID: ' + taskId);
+        message.success('任务已启动! ID: ' + taskId);
         setCurrentTaskId(taskId);
         startPolling(taskId);
       } else {
-        message.error('Failed to start task');
+        message.error('启动任务失败');
       }
     } catch (e) {
       console.error(e);
@@ -86,13 +86,13 @@ const TriggerPage: React.FC = () => {
         const data = res.data || (res as any);
         setTaskStatus(data);
 
-        if (['completed', 'failed'].includes(data.status)) {
+        if (['SUCCESS', 'FAILED'].includes(data.status)) {
           if (pollingRef.current) clearInterval(pollingRef.current);
           fetchHistory(); // Refresh history
-          if (data.status === 'completed') {
-            message.success('Task finished successfully');
+          if (data.status === 'SUCCESS') {
+            message.success('任务成功完成');
           } else {
-            message.error('Task failed');
+            message.error('任务失败');
           }
         }
       } catch (e) {
@@ -103,59 +103,68 @@ const TriggerPage: React.FC = () => {
 
   const columns: ColumnsType<TaskHistory> = [
     {
-      title: 'Time',
+      title: '时间',
       dataIndex: 'start_time',
       key: 'start_time',
       render: (t) => dayjs(t).format('MM-DD HH:mm:ss')
     },
     {
-      title: 'Config ID',
+      title: '配置 ID',
       dataIndex: 'config_id',
       key: 'config_id',
     },
     {
-      title: 'Status',
+      title: '状态',
       dataIndex: 'status',
       key: 'status',
       render: (status) => {
         let color = 'default';
-        if (status === 'running') color = 'processing';
-        if (status === 'completed') color = 'success';
-        if (status === 'failed') color = 'error';
-        return <Tag color={color}>{status.toUpperCase()}</Tag>;
+        if (status === 'RUNNING') color = 'processing';
+        if (status === 'SUCCESS') color = 'success';
+        if (status === 'FAILED') color = 'error';
+        if (status === 'PENDING') color = 'orange';
+
+        const map: Record<string, string> = {
+          'RUNNING': '运行中',
+          'SUCCESS': '成功',
+          'FAILED': '失败',
+          'PENDING': '等待中'
+        };
+        return <Tag color={color}>{map[status] || status}</Tag>;
       }
     },
     {
-      title: 'Items',
-      dataIndex: 'items_crawled',
-      key: 'items_crawled',
+      title: '抓取数',
+      dataIndex: 'fetched_count',
+      key: 'fetched_count',
     },
+    /*
     {
-      title: 'Action',
+      title: '操作',
       key: 'action',
       render: (_, record) => (
-        record.csv_url ?
-          <Button href={record.csv_url} target="_blank" size="small" icon={<DownloadOutlined />}>CSV</Button> : '-'
+         record.log_path ? <Button disabled size="small">日志</Button> : '-'
       )
     }
+    */
   ];
 
   return (
     <div>
       <Row gutter={24}>
         <Col span={24} lg={10}>
-          <Card title={<><PlayCircleOutlined /> Trigger New Job</>} bordered={false} style={{ marginBottom: 24 }}>
+          <Card title={<><PlayCircleOutlined /> 触发新任务</>} bordered={false} style={{ marginBottom: 24 }}>
             <div style={{ marginBottom: 16 }}>
-              <Text strong>Select Configuration:</Text>
+              <Text strong>选择配置:</Text>
               <Select
                 style={{ width: '100%', marginTop: 8 }}
-                placeholder="Choose a config to run"
+                placeholder="选择要运行的配置"
                 onChange={setSelectedConfigId}
                 loading={configs.length === 0}
               >
                 {configs.map(c => (
                   <Select.Option key={c.id} value={c.id}>
-                    {c.keyword} ({c.platform})
+                    {c.keywords} ({c.platform})
                   </Select.Option>
                 ))}
               </Select>
@@ -171,19 +180,19 @@ const TriggerPage: React.FC = () => {
               block
               disabled={!selectedConfigId}
             >
-              START CRAWLING
+              开始爬取
             </Button>
 
             {currentTaskId && taskStatus && (
               <div style={{ marginTop: 24, padding: 16, background: '#fafafa', borderRadius: 8 }}>
-                <Text strong>Current Task: {currentTaskId}</Text>
+                <Text strong>当前任务: {currentTaskId}</Text>
                 <div style={{ marginTop: 8 }}>
-                  <Tag color={taskStatus.status === 'running' ? 'blue' : taskStatus.status === 'completed' ? 'green' : 'red'}>
-                    {taskStatus.status.toUpperCase()}
+                  <Tag color={taskStatus.status === 'RUNNING' ? 'blue' : taskStatus.status === 'SUCCESS' ? 'green' : 'red'}>
+                    {taskStatus.status === 'RUNNING' ? '运行中' : taskStatus.status === 'SUCCESS' ? '已完成' : '失败'}
                   </Tag>
-                  <span style={{ marginLeft: 8 }}>Items: {taskStatus.items_crawled}</span>
+                  <span style={{ marginLeft: 8 }}>抓取数: {taskStatus.fetched_count}</span>
                 </div>
-                {taskStatus.status === 'running' && <Progress percent={60} status="active" showInfo={false} style={{ marginTop: 8 }} />}
+                {taskStatus.status === 'RUNNING' && <Progress percent={60} status="active" showInfo={false} style={{ marginTop: 8 }} />}
               </div>
             )}
           </Card>
@@ -191,7 +200,7 @@ const TriggerPage: React.FC = () => {
 
         <Col span={24} lg={14}>
           <Card
-            title={<><HistoryOutlined /> History</>}
+            title={<><HistoryOutlined /> 历史记录</>}
             extra={<Button size="small" icon={<ReloadOutlined />} onClick={fetchHistory} />}
             bordered={false}
           >

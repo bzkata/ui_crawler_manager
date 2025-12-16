@@ -22,13 +22,13 @@ client.interceptors.response.use(
     if (error.response) {
       const { status } = error.response;
       if (status === 401) {
-        message.error('Unauthorized, please login');
+        message.error('未授权，请登录');
         // window.location.href = '/login'; // simplified redirect
       } else {
-        message.error(error.response.data?.msg || 'Server Error');
+        message.error(error.response.data?.msg || '服务器错误');
       }
     } else {
-      message.error(error.message || 'Network Error');
+      message.error(error.message || '网络错误');
     }
     return Promise.reject(error);
   }

@@ -42,7 +42,15 @@ const ConfigPage: React.FC = () => {
   const handleAdd = () => {
     setEditingConfig(null);
     form.resetFields();
-    form.setFieldsValue({ max_pages: 50, fetch_comments: false, platform: 'xhs' });
+    form.setFieldsValue({
+      max_pages: 50,
+      type: 'search',
+      lt: 'qrcode',
+      get_comment: 'false',
+      get_sub_comment: 'false',
+      save_data_option: 'json',
+      platform: 'xhs'
+    });
     setModalOpen(true);
   };
 
@@ -55,7 +63,7 @@ const ConfigPage: React.FC = () => {
   const handleDelete = async (id: string) => {
     try {
       await client.delete(`/configs/${id}`);
-      message.success('Deleted successfully');
+      message.success('删除成功');
       fetchConfigs();
     } catch (error) {
       // Error handled by interceptor
@@ -67,10 +75,10 @@ const ConfigPage: React.FC = () => {
       const values = await form.validateFields();
       if (editingConfig) {
         await client.put(`/configs/${editingConfig.id}`, values);
-        message.success('Updated successfully');
+        message.success('更新成功');
       } else {
         await client.post('/configs', values);
-        message.success('Created successfully');
+        message.success('创建成功');
       }
       setModalOpen(false);
       fetchConfigs();
@@ -81,40 +89,52 @@ const ConfigPage: React.FC = () => {
 
   const columns: ColumnsType<Config> = [
     {
-      title: 'Keyword',
-      dataIndex: 'keyword',
-      key: 'keyword',
+      title: '关键词',
+      dataIndex: 'keywords',
+      key: 'keywords',
     },
     {
-      title: 'Platform',
+      title: '平台',
       dataIndex: 'platform',
       key: 'platform',
       render: (text) => {
-        let color = 'default';
-        if (text === 'xhs') color = 'red';
-        if (text === 'douyin') color = 'blue';
-        if (text === 'zhihu') color = 'geekblue';
-        return <Tag color={color}>{text.toUpperCase()}</Tag>;
+        const map: Record<string, string> = {
+          xhs: '小红书', dy: '抖音', ks: '快手', bili: '哔哩哔哩',
+          wb: '微博', tieba: '百度贴吧', zhuihu: '知乎'
+        };
+        return <Tag color="blue">{map[text] || text}</Tag>;
       }
     },
     {
-      title: 'Max Pages',
-      dataIndex: 'max_pages',
-      key: 'max_pages',
+      title: '类型',
+      dataIndex: 'type',
+      key: 'type',
+      render: (t) => t === 'search' ? '搜索' : t === 'detail' ? '详情' : '创作者'
     },
     {
-      title: 'Comments',
-      dataIndex: 'fetch_comments',
-      key: 'fetch_comments',
-      render: (val) => <Switch checked={val} disabled size="small" />,
+      title: '登录',
+      dataIndex: 'lt',
+      key: 'lt',
+      render: (t) => t === 'qrcode' ? '二维码' : t === 'phone' ? '手机号' : 'Cookie'
     },
     {
-      title: 'Actions',
+      title: '评论(一级/二级)',
+      key: 'comments',
+      render: (_, r) => (
+        <Space>
+          <Tag>{r.get_comment === 'true' ? '是' : '否'}</Tag>
+          /
+          <Tag>{r.get_sub_comment === 'true' ? '是' : '否'}</Tag>
+        </Space>
+      )
+    },
+    {
+      title: '操作',
       key: 'actions',
       render: (_, record) => (
         <Space>
           <Button icon={<EditOutlined />} size="small" onClick={() => handleEdit(record)} />
-          <Popconfirm title="Are you sure?" onConfirm={() => handleDelete(record.id)}>
+          <Popconfirm title="确定删除吗?" onConfirm={() => handleDelete(record.id)}>
             <Button icon={<DeleteOutlined />} size="small" danger />
           </Popconfirm>
         </Space>
@@ -125,11 +145,11 @@ const ConfigPage: React.FC = () => {
   return (
     <div>
       <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between' }}>
-        <h2>Config Management</h2>
+        <h2>配置管理</h2>
         <Space>
-          <Button icon={<ReloadOutlined />} onClick={fetchConfigs}>Refresh</Button>
+          <Button icon={<ReloadOutlined />} onClick={fetchConfigs}>刷新</Button>
           <Button type="primary" icon={<PlusOutlined />} onClick={handleAdd}>
-            Add Config
+            添加配置
           </Button>
         </Space>
       </div>
@@ -143,7 +163,7 @@ const ConfigPage: React.FC = () => {
       />
 
       <Modal
-        title={editingConfig ? 'Edit Config' : 'Add Config'}
+        title={editingConfig ? '编辑配置' : '添加配置'}
         open={modalOpen}
         onOk={handleOk}
         onCancel={() => setModalOpen(false)}
@@ -151,36 +171,93 @@ const ConfigPage: React.FC = () => {
       >
         <Form form={form} layout="vertical">
           <Form.Item
-            name="keyword"
-            label="Keyword"
-            rules={[{ required: true, message: 'Please enter keyword' }]}
-          >
-            <Input placeholder="e.g. 旅游攻略" />
-          </Form.Item>
-          <Form.Item
             name="platform"
-            label="Platform"
+            label="平台"
             rules={[{ required: true }]}
           >
-            <Select>
-              <Select.Option value="xhs">Xiaohongshu</Select.Option>
-              <Select.Option value="douyin">Douyin</Select.Option>
-              <Select.Option value="zhihu">Zhihu</Select.Option>
-            </Select>
+            <Select options={[
+              { label: '小红书', value: 'xhs' },
+              { label: '抖音', value: 'dy' },
+              { label: '快手', value: 'ks' },
+              { label: '哔哩哔哩', value: 'bili' },
+              { label: '微博', value: 'wb' },
+              { label: '百度贴吧', value: 'tieba' },
+              { label: '知乎', value: 'zhihu' },
+            ]} />
           </Form.Item>
+
+          <Form.Item
+            name="keywords"
+            label="关键词"
+            rules={[{ required: true, message: '请输入关键词' }]}
+          >
+            <Input placeholder="多个关键词用逗号分隔，如 布鲁可,积木人" />
+          </Form.Item>
+
+          <Form.Item label="爬取类型" name="type" rules={[{ required: true }]}>
+            <Select options={[
+              { label: '搜索', value: 'search' },
+              { label: '详情', value: 'detail' },
+              { label: '创作者', value: 'creator' },
+            ]} />
+          </Form.Item>
+
+          <Form.Item label="登录方式" name="lt" rules={[{ required: true }]}>
+            <Select options={[
+              { label: '二维码', value: 'qrcode' },
+              { label: '手机号', value: 'phone' },
+              { label: 'Cookie', value: 'cookie' },
+            ]} />
+          </Form.Item>
+
+          <Form.Item noStyle dependencies={['lt']}>
+            {({ getFieldValue }) =>
+              getFieldValue('lt') === 'cookie' && (
+                <Form.Item label="Cookie 值" name="cookies" rules={[{ required: true }]}>
+                  <Input.TextArea rows={4} />
+                </Form.Item>
+              )}
+          </Form.Item>
+
+          <Form.Item 
+            label="抓取一级评论"
+            name="get_comment"
+            valuePropName="checked"
+            getValueProps={(val) => ({ checked: val === 'true' })}
+            normalize={(val) => val ? 'true' : 'false'}
+          >
+            <Switch checkedChildren="是" unCheckedChildren="否" />
+          </Form.Item>
+
+          <Form.Item 
+            label="抓取二级评论"
+            name="get_sub_comment"
+            valuePropName="checked" 
+            getValueProps={(val) => ({ checked: val === 'true' })}
+            normalize={(val) => val ? 'true' : 'false'}
+          >
+            <Switch checkedChildren="是" unCheckedChildren="否" />
+          </Form.Item>
+
+          <Form.Item label="数据保存方式" name="save_data_option" rules={[{ required: true }]}>
+            <Select options={[
+              { label: 'JSON', value: 'json' },
+              { label: 'CSV', value: 'csv' },
+              { label: 'SQLite', value: 'sqlite' },
+              { label: 'Excel', value: 'excel' },
+              { label: 'MongoDB', value: 'mongodb' },
+              { label: 'Database', value: 'db' },
+            ]} />
+          </Form.Item>
+
+          {/* Keeping max_pages as hidden or secondary if needed, or explicitly exposing it */}
           <Form.Item
             name="max_pages"
-            label="Max Pages"
+            label="最大页数"
             rules={[{ required: true }]}
+            initialValue={50}
           >
             <InputNumber min={1} max={1000} style={{ width: '100%' }} />
-          </Form.Item>
-          <Form.Item
-            name="fetch_comments"
-            label="Fetch Comments"
-            valuePropName="checked"
-          >
-            <Switch />
           </Form.Item>
         </Form>
       </Modal>

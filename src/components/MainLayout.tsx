@@ -32,7 +32,7 @@ const MainLayout: React.FC = () => {
     items: [
       {
         key: 'logout',
-        label: 'Logout',
+        label: '退出登录',
         icon: <LogoutOutlined />,
         onClick: handleLogout
       }
