@@ -8,6 +8,8 @@ import Login from './pages/Login';
 import ConfigPage from './pages/ConfigPage';
 import TriggerPage from './pages/TriggerPage';
 import CookiePage from './pages/CookiePage';
+import OpinionReportPage from './pages/OpinionReportPage';
+import DataPage from './pages/DataPage';
 
 const App: React.FC = () => {
   return (
@@ -27,6 +29,8 @@ const App: React.FC = () => {
             <Route path="configs" element={<ConfigPage />} />
             <Route path="trigger" element={<TriggerPage />} />
             <Route path="cookies" element={<CookiePage />} />
+            <Route path="opinion-report" element={<OpinionReportPage />} />
+            <Route path="data" element={<DataPage />} />
           </Route>
         </Routes>
       </BrowserRouter>

@@ -7,7 +7,8 @@ import {
   PlayCircleOutlined,
   SecurityScanOutlined,
   UserOutlined,
-  LogoutOutlined
+  LogoutOutlined,
+  BarChartOutlined
 } from '@ant-design/icons';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 
@@ -76,6 +77,16 @@ const MainLayout: React.FC = () => {
               key: '/cookies',
               icon: <SecurityScanOutlined />,
               label: 'Cookie管理',
+            },
+            {
+              key: '/opinion-report',
+              icon: <BarChartOutlined />,
+              label: '舆情报告',
+            },
+            {
+              key: '/data',
+              icon: <BarChartOutlined />,
+              label: '数据管理',
             },
           ]}
         />
