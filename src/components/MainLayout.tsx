@@ -8,7 +8,10 @@ import {
   SecurityScanOutlined,
   UserOutlined,
   LogoutOutlined,
-  BarChartOutlined
+  BarChartOutlined,
+  EditOutlined,
+  PieChartOutlined,
+  FileTextOutlined
 } from '@ant-design/icons';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 
@@ -80,13 +83,18 @@ const MainLayout: React.FC = () => {
             },
             {
               key: '/opinion-report',
-              icon: <BarChartOutlined />,
+              icon: <FileTextOutlined />,
               label: '舆情报告',
             },
             {
               key: '/data',
-              icon: <BarChartOutlined />,
+              icon: <PieChartOutlined />,
               label: '数据管理',
+            },
+            {
+              key: '/annotation-editor',
+              icon: <EditOutlined />,
+              label: '标注编辑器',
             },
           ]}
         />
@@ -113,7 +121,8 @@ const MainLayout: React.FC = () => {
         </Header>
         <Content
           style={{
-            margin: '24px 16px',
+            // 上 右 下 左，底部预留较大间距，避免内容贴底
+            margin: '24px 16px 124px',
             padding: 24,
             minHeight: 280,
             background: colorBgContainer,
