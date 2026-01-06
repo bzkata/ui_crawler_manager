@@ -121,8 +121,7 @@ const MainLayout: React.FC = () => {
         </Header>
         <Content
           style={{
-            // 上 右 下 左，底部预留较大间距，避免内容贴底
-            margin: '24px 16px 124px',
+            margin: '24px 16px',
             padding: 24,
             minHeight: 280,
             background: colorBgContainer,
