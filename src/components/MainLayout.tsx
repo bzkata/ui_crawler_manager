@@ -9,7 +9,10 @@ import {
   UserOutlined,
   LogoutOutlined,
   BarChartOutlined,
-  SwapOutlined
+  SwapOutlined,
+  EditOutlined,
+  PieChartOutlined,
+  FileTextOutlined
 } from '@ant-design/icons';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 
@@ -81,18 +84,23 @@ const MainLayout: React.FC = () => {
             },
             {
               key: '/opinion-report',
-              icon: <BarChartOutlined />,
+              icon: <FileTextOutlined />,
               label: '舆情报告',
             },
             {
               key: '/data',
-              icon: <BarChartOutlined />,
+              icon: <PieChartOutlined />,
               label: '数据管理',
             },
             {
               key: '/data-transform',
               icon: <SwapOutlined />,
               label: '数据转换',
+            },
+            {
+              key: '/annotation-editor',
+              icon: <EditOutlined />,
+              label: '标注编辑器',
             },
           ]}
         />
