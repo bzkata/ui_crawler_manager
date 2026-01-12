@@ -8,7 +8,8 @@ import {
   SecurityScanOutlined,
   UserOutlined,
   LogoutOutlined,
-  BarChartOutlined
+  BarChartOutlined,
+  SwapOutlined
 } from '@ant-design/icons';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 
@@ -87,6 +88,11 @@ const MainLayout: React.FC = () => {
               key: '/data',
               icon: <BarChartOutlined />,
               label: '数据管理',
+            },
+            {
+              key: '/data-transform',
+              icon: <SwapOutlined />,
+              label: '数据转换',
             },
           ]}
         />

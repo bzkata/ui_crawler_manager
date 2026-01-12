@@ -10,6 +10,7 @@ import TriggerPage from './pages/TriggerPage';
 import CookiePage from './pages/CookiePage';
 import OpinionReportPage from './pages/OpinionReportPage';
 import DataPage from './pages/DataPage';
+import DataTransformPage from './pages/DataTransformPage';
 
 const App: React.FC = () => {
   return (
@@ -31,6 +32,7 @@ const App: React.FC = () => {
             <Route path="cookies" element={<CookiePage />} />
             <Route path="opinion-report" element={<OpinionReportPage />} />
             <Route path="data" element={<DataPage />} />
+            <Route path="data-transform" element={<DataTransformPage />} />
           </Route>
         </Routes>
       </BrowserRouter>
