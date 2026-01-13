@@ -43,6 +43,7 @@ export interface FileInfo {
   type: 'content' | 'comment'; // 数据类型
   count: number; // 数据条数
   platform?: string; // 平台标识
+  path?: string; // 文件路径（用于辅助判断平台）
   data: any[]; // 原始数据
 }
 

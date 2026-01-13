@@ -1,12 +1,22 @@
-import { UnifiedContent, UnifiedComment, FileInfo, TransformResult } from '../types/dataTransform';
+import type { UnifiedContent, UnifiedComment, FileInfo, TransformResult } from '../types/dataTransform';
 
 // 检测平台类型
-export function detectPlatform(data: any[]): string {
+export function detectPlatform(data: any[], path?: string): string {
+  // 1. 优先尝试从路径中识别平台
+  if (path) {
+    const lowerPath = path.toLowerCase();
+    if (lowerPath.includes('douyin')) return 'douyin';
+    if (lowerPath.includes('bili') || lowerPath.includes('bilibili')) return 'bili';
+    if (lowerPath.includes('kuaishou') || lowerPath.includes('ks')) return 'kuaishou';
+    if (lowerPath.includes('xhs') || lowerPath.includes('xiaohongshu')) return 'xhs';
+    if (lowerPath.includes('weibo')) return 'weibo';
+  }
+
   if (!data || data.length === 0) return 'unknown';
   
   const firstItem = data[0];
   
-  // 通过字段特征判断平台（按照特征唯一性优先级）
+  // 2. 通过字段特征判断平台（按照特征唯一性优先级）
   if (firstItem.aweme_id) {
     return 'douyin'; // 抖音
   }
@@ -159,8 +169,53 @@ export function transformComment(data: any[], platform: string): UnifiedComment[
   });
 }
 
+import Papa from 'papaparse';
+
+// ... (existing helper functions)
+
+// 解析CSV文件
+export async function parseCsvFile(file: File, path?: string): Promise<FileInfo> {
+  return new Promise((resolve, reject) => {
+    Papa.parse(file, {
+      header: true,
+      skipEmptyLines: true,
+      complete: (results) => {
+        try {
+          const data = results.data;
+          const filePath = path || (file as any).path || (file as any).webkitRelativePath || file.name;
+          const platform = detectPlatform(data, filePath);
+          const type = detectDataType(data);
+
+          resolve({
+            name: file.name,
+            size: file.size,
+            type: type,
+            count: data.length,
+            platform: platform,
+            path: filePath,
+            data: data,
+          });
+        } catch (error) {
+          reject(new Error(`解析CSV文件失败: ${error}`));
+        }
+      },
+      error: (error) => {
+        reject(new Error(`读取文件失败: ${error.message}`));
+      }
+    });
+  });
+}
+
+// 解析文件（支持JSON和CSV）
+export async function parseFile(file: File, path?: string): Promise<FileInfo> {
+  if (file.name.toLowerCase().endsWith('.csv')) {
+    return parseCsvFile(file, path);
+  }
+  return parseJsonFile(file, path);
+}
+
 // 解析JSON文件
-export async function parseJsonFile(file: File): Promise<FileInfo> {
+export async function parseJsonFile(file: File, path?: string): Promise<FileInfo> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     
@@ -174,7 +229,8 @@ export async function parseJsonFile(file: File): Promise<FileInfo> {
           return;
         }
         
-        const platform = detectPlatform(data);
+        const filePath = path || (file as any).path || (file as any).webkitRelativePath || file.name;
+        const platform = detectPlatform(data, filePath);
         const type = detectDataType(data);
         
         resolve({
@@ -183,6 +239,7 @@ export async function parseJsonFile(file: File): Promise<FileInfo> {
           type: type,
           count: data.length,
           platform: platform,
+          path: filePath,
           data: data,
         });
       } catch (error) {
@@ -199,7 +256,7 @@ export async function parseJsonFile(file: File): Promise<FileInfo> {
 }
 
 // 转换文件数据
-export function transformFile(fileInfo: FileInfo): TransformResult {
+export function transformFile(fileInfo: FileInfo, format: 'json' | 'csv' = 'json'): TransformResult {
   const platform = fileInfo.platform || 'unknown';
   let transformedData: UnifiedContent[] | UnifiedComment[];
   
@@ -209,15 +266,31 @@ export function transformFile(fileInfo: FileInfo): TransformResult {
     transformedData = transformComment(fileInfo.data, platform);
   }
   
-  // 生成新文件名：原文件名_formated.json
-  const originalName = fileInfo.name.replace(/\.json$/i, '');
-  const newFileName = `${originalName}_formated.json`;
+  // 生成新文件名：【平台名】-【原文件名】-formatted.[格式]
+  const originalName = fileInfo.name.replace(/\.(json|csv)$/i, '');
+  const newFileName = `${platform}-${originalName}-formatted.${format}`;
+
+  // 如果是CSV格式，需要将数据转换为CSV字符串
+  // 注意：Types currently defines data as UnifiedContent[] | UnifiedComment[], which works for JSON.
+  // For CSV, we might want to return the string content or handle wrapping outside?
+  // Ideally TransformResult.data implies the structure content.
+  // But standard flow returns JSON object.
+  // If we want CSV string, we should probably handle it here or in the page.
+  // Let's modify logic: The page will handle the "stringification" to JSON or CSV.
+  // Wait, `transformFile` returns `TransformResult` with `data`.
+  // Let's adhere to returning objects here, and let the zipper handle conversion.
+  // BUT the request says "Download .csv" or "Download .json".
   
   return {
     fileName: newFileName,
     originalFileName: fileInfo.name,
     type: fileInfo.type,
     count: transformedData.length,
-    data: transformedData,
+    data: transformedData, // Return objects, page handles serialization
   };
+}
+
+// 将数据转换为CSV字符串
+export function dataToCsv(data: any[]): string {
+  return Papa.unparse(data);
 }

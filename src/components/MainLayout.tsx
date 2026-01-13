@@ -83,11 +83,6 @@ const MainLayout: React.FC = () => {
               label: 'Cookie管理',
             },
             {
-              key: '/opinion-report',
-              icon: <FileTextOutlined />,
-              label: '舆情报告',
-            },
-            {
               key: '/data',
               icon: <PieChartOutlined />,
               label: '数据管理',
@@ -96,6 +91,11 @@ const MainLayout: React.FC = () => {
               key: '/data-transform',
               icon: <SwapOutlined />,
               label: '数据转换',
+            },
+            {
+              key: '/opinion-report',
+              icon: <FileTextOutlined />,
+              label: '舆情报告',
             },
             {
               key: '/annotation-editor',
